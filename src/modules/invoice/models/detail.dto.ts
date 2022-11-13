@@ -12,4 +12,10 @@ export class DetailDto {
   @IsNumber()
   @IsNotEmpty()
   unitPrice: number;
+
+  constructor(product: string, amount: number, unitPrice: number) {
+    this.product = product;
+    this.amount = amount;
+    this.unitPrice = unitPrice;
+  }
 }
