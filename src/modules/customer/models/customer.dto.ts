@@ -1,19 +1,8 @@
-import {
-  IsString,
-  IsNotEmpty,
-  IsUUID,
-  IsEmail,
-  IsOptional,
-} from 'class-validator';
+import { IsString, IsNotEmpty, IsEmail, IsOptional } from 'class-validator';
 import { InvoiceDto } from '../../invoice/models/invoice.dto';
 export class CustomerDto {
-  @IsOptional()
-  @IsString()
-  @IsNotEmpty()
-  @IsUUID()
   id: string;
 
-  @IsOptional()
   @IsString()
   @IsNotEmpty()
   name: string;

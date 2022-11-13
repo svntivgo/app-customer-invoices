@@ -1,18 +1,13 @@
-import { IsString, IsNotEmpty, IsUUID, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty } from 'class-validator';
 import { DetailDto } from './detail.dto';
 
 export class InvoiceDto {
-  @IsOptional()
-  @IsString()
-  @IsNotEmpty()
-  @IsUUID()
   id: string;
 
-  @IsOptional()
   @IsString()
   @IsNotEmpty()
   date: string;
 
-  @IsOptional()
+  @IsNotEmpty()
   detail: DetailDto[];
 }
