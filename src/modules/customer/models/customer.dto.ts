@@ -3,7 +3,6 @@ import {
   IsNotEmpty,
   IsUUID,
   IsEmail,
-  IsPhoneNumber,
   IsOptional,
 } from 'class-validator';
 import { InvoiceDto } from '../../invoice/models/invoice.dto';
