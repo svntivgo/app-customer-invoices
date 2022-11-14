@@ -49,4 +49,14 @@ export class CustomerService {
 
     return customer ? customer : 'Not found';
   }
+
+  deleteCustomerById(id: string): boolean {
+    const valor = this.customers.find((customer, i) => {
+      if (customer?.id === id) {
+        this.customers.splice(i, 1);
+        return customer;
+      }
+    });
+    return valor ? true : false;
+  }
 }

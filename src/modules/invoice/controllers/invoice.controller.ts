@@ -7,6 +7,7 @@ import {
   Put,
   Patch,
   Query,
+  Delete,
 } from '@nestjs/common';
 import { InvoiceDto } from '../models/invoice.dto';
 import { InvoiceService } from '../services/invoice.service';
@@ -44,5 +45,10 @@ export class InvoiceController {
     @Query('newDate') newDate: string,
   ): InvoiceDto | string {
     return this.invoiceService.updateInvoiceDate(id, newDate);
+  }
+
+  @Delete(':id')
+  deleteInvoiceById(@Param('id') id: string): boolean {
+    return this.invoiceService.deleteInvoiceById(id);
   }
 }

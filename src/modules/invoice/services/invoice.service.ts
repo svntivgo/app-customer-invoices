@@ -46,4 +46,14 @@ export class InvoiceService {
 
     return invoice ? invoice : 'Not found';
   }
+
+  deleteInvoiceById(id: string): boolean {
+    const valor = this.invoices.find((invoice, i) => {
+      if (invoice?.id === id) {
+        this.invoices.splice(i, 1);
+        return invoice;
+      }
+    });
+    return valor ? true : false;
+  }
 }

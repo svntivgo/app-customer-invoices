@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -44,5 +45,10 @@ export class CustomerController {
     @Query('newEmail') newEmail: string,
   ): CustomerDto | string {
     return this.customerService.updateCustomerEmail(id, newEmail);
+  }
+
+  @Delete(':id')
+  deleteCustomerById(@Param('id') id: string): boolean {
+    return this.customerService.deleteCustomerById(id);
   }
 }
