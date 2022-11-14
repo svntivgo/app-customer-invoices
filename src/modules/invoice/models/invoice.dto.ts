@@ -1,4 +1,5 @@
 import { IsString, IsNotEmpty } from 'class-validator';
+import { randomUUID } from 'crypto';
 import { DetailDto } from './detail.dto';
 
 export class InvoiceDto {
@@ -10,4 +11,10 @@ export class InvoiceDto {
 
   @IsNotEmpty()
   detail: DetailDto[];
+
+  constructor(date: string, detail: DetailDto[]) {
+    this.id = randomUUID();
+    this.date = date;
+    this.detail = detail;
+  }
 }
