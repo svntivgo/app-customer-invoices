@@ -8,7 +8,11 @@ import {
   Patch,
   Query,
   Delete,
+  UseFilters,
+  UseGuards,
 } from '@nestjs/common';
+import { HttpExceptionFilter } from 'src/filters/dto.filter';
+import { AuthGuard } from 'src/guard/token.guard';
 import { InvoiceDto } from '../models/invoice.dto';
 import { InvoiceService } from '../services/invoice.service';
 
@@ -22,6 +26,8 @@ export class InvoiceController {
   }
 
   @Post()
+  @UseGuards(AuthGuard)
+  @UseFilters(new HttpExceptionFilter())
   newInvoice(@Body() body: InvoiceDto): InvoiceDto {
     return this.invoiceService.newInvoice(body);
   }
@@ -32,6 +38,8 @@ export class InvoiceController {
   }
 
   @Put(':id')
+  @UseGuards(AuthGuard)
+  @UseFilters(new HttpExceptionFilter())
   updateInvoice(
     @Param('id') id: string,
     @Body() invoiceNew: InvoiceDto,
@@ -40,6 +48,8 @@ export class InvoiceController {
   }
 
   @Patch(':id')
+  @UseGuards(AuthGuard)
+  @UseFilters(new HttpExceptionFilter())
   updateInvoiceDate(
     @Param('id') id: string,
     @Query('newDate') newDate: string,
@@ -48,6 +58,7 @@ export class InvoiceController {
   }
 
   @Delete(':id')
+  @UseGuards(AuthGuard)
   deleteInvoiceById(@Param('id') id: string): boolean {
     return this.invoiceService.deleteInvoiceById(id);
   }

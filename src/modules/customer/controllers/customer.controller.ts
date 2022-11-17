@@ -8,9 +8,13 @@ import {
   Post,
   Put,
   Query,
+  UseFilters,
+  UseGuards,
 } from '@nestjs/common';
 import { CustomerService } from '../services/customer.service';
 import { CustomerDto } from '../models/customer.dto';
+import { HttpExceptionFilter } from 'src/filters/dto.filter';
+import { AuthGuard } from 'src/guard/token.guard';
 
 @Controller('customer')
 export class CustomerController {
@@ -22,6 +26,8 @@ export class CustomerController {
   }
 
   @Post()
+  @UseGuards(AuthGuard)
+  @UseFilters(new HttpExceptionFilter())
   newCustomer(@Body() body: CustomerDto): CustomerDto {
     return this.customerService.newCustomer(body);
   }
@@ -32,6 +38,8 @@ export class CustomerController {
   }
 
   @Put(':id')
+  @UseGuards(AuthGuard)
+  @UseFilters(new HttpExceptionFilter())
   updateCustomer(
     @Param('id') id: string,
     @Body() customerNew: CustomerDto,
@@ -40,6 +48,8 @@ export class CustomerController {
   }
 
   @Patch(':id')
+  @UseGuards(AuthGuard)
+  @UseFilters(new HttpExceptionFilter())
   updateCustomerMail(
     @Param('id') id: string,
     @Query('newEmail') newEmail: string,
@@ -48,6 +58,7 @@ export class CustomerController {
   }
 
   @Delete(':id')
+  @UseGuards(AuthGuard)
   deleteCustomerById(@Param('id') id: string): boolean {
     return this.customerService.deleteCustomerById(id);
   }
