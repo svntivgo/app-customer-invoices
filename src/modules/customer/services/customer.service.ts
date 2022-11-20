@@ -1,62 +1,132 @@
-import { customerDb } from './../../../db/customers-db';
-import { Injectable } from '@nestjs/common';
-import { CustomerDto } from '../models/customer.dto';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { CustomerEntity } from '../entities/customer.entity';
+import { DataSource } from 'typeorm';
 
 @Injectable()
 export class CustomerService {
-  customers: CustomerDto[] = customerDb;
+  constructor(private dataSource: DataSource) {}
 
-  getCustomers(): CustomerDto[] {
-    return this.customers;
-  }
+  customers: CustomerEntity[];
 
-  getCustomerById(id: string): CustomerDto | string {
-    const customerFound: CustomerDto | undefined = this.customers.find(
-      (customer) => customer.id === id,
-    );
-    return customerFound ? customerFound : 'Not found';
-  }
-
-  newCustomer(customer: CustomerDto): CustomerDto {
-    const newCustomer = new CustomerDto(
-      customer.name,
-      customer.email,
-      customer.invoices ? customer.invoices : [],
-    );
-    this.customers.push(newCustomer);
-    return newCustomer;
-  }
-
-  updateCustomer(id: string, customerNew: CustomerDto): CustomerDto | string {
-    const customer: CustomerDto | undefined = this.customers.find(
-      (customer) => customer.id === id,
-    );
-    if (customer) {
-      customer.name = customerNew.name;
-      customer.email = customerNew.email;
+  async getCustomers(): Promise<CustomerEntity[]> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const customers = await queryRunner.manager.find(CustomerEntity);
+      await queryRunner.commitTransaction();
+      return customers;
+    } catch (err) {
+      // since we have errors lets rollback the changes we made
+      await queryRunner.rollbackTransaction();
+      throw new HttpException(err.message, HttpStatus.CONFLICT);
     }
-
-    return customer ? customer : 'Not found';
   }
 
-  updateCustomerEmail(id: string, newEmail: string): CustomerDto | string {
-    const customer: CustomerDto | undefined = this.customers.find(
-      (customer) => customer.id === id,
-    );
-    if (customer) {
-      customer.email = newEmail;
+  async getCustomerById(id: number): Promise<CustomerEntity> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const customer = await queryRunner.manager.findOneByOrFail(
+        CustomerEntity,
+        {
+          id: id,
+        },
+      );
+      await queryRunner.commitTransaction();
+      return customer;
+    } catch (err) {
+      // since we have errors lets rollback the changes we made
+      await queryRunner.rollbackTransaction();
+      throw new HttpException(err.message, HttpStatus.CONFLICT);
     }
-
-    return customer ? customer : 'Not found';
   }
 
-  deleteCustomerById(id: string): boolean {
-    const valor = this.customers.find((customer, i) => {
-      if (customer?.id === id) {
-        this.customers.splice(i, 1);
-        return customer;
+  async newCustomer(customer: CustomerEntity): Promise<CustomerEntity> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const newCustomer = await queryRunner.manager.save(customer);
+      await queryRunner.commitTransaction();
+      return Promise.resolve(newCustomer);
+    } catch (err) {
+      // since we have errors lets rollback the changes we made
+      await queryRunner.rollbackTransaction();
+      throw new HttpException(err.message, HttpStatus.CONFLICT);
+    }
+  }
+
+  async updateCustomer(
+    id: number,
+    customerNew: CustomerEntity,
+  ): Promise<CustomerEntity> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const customer = await queryRunner.manager.findOneByOrFail(
+        CustomerEntity,
+        {
+          id: customerNew.id,
+        },
+      );
+      if (customerNew.name && customerNew.email) {
+        await queryRunner.commitTransaction();
+        if (customerNew.name) customer.name = customerNew.name;
+        if (customerNew.email) customer.email = customerNew.email;
+        if (customerNew.invoices) customer.invoices = customerNew.invoices;
       }
-    });
-    return valor ? true : false;
+      return customer;
+    } catch (err) {
+      // since we have errors lets rollback the changes we made
+      await queryRunner.rollbackTransaction();
+      throw new HttpException(err.message, HttpStatus.CONFLICT);
+    }
+  }
+
+  async patchCustomer(
+    id: number,
+    customerNew: CustomerEntity,
+  ): Promise<CustomerEntity> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const customer = await queryRunner.manager.findOneByOrFail(
+        CustomerEntity,
+        {
+          id: customerNew.id,
+        },
+      );
+      await queryRunner.commitTransaction();
+      if (customerNew.name) customer.name = customerNew.name;
+      if (customerNew.email) customer.email = customerNew.email;
+      if (customerNew.invoices) customer.invoices = customerNew.invoices;
+      return customer;
+    } catch (err) {
+      // since we have errors lets rollback the changes we made
+      await queryRunner.rollbackTransaction();
+      throw new HttpException(err.message, HttpStatus.CONFLICT);
+    }
+  }
+
+  async deleteCustomerById(id: number): Promise<boolean> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      await queryRunner.manager.query(
+        `DELETE x.* FROM tbl_customer x WHERE id = ${id}`,
+      );
+      await queryRunner.commitTransaction();
+      return true;
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw new HttpException(err.message, HttpStatus.CONFLICT);
+    }
   }
 }

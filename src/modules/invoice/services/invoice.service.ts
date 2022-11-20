@@ -1,59 +1,139 @@
-import { Injectable } from '@nestjs/common';
-import { invoiceDb } from '../../../db/invoices-db';
-import { InvoiceDto } from '../models/invoice.dto';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { DataSource } from 'typeorm';
+import { InvoiceEntity } from '../entities/invoice.entity';
+import { DetailEntity } from '../entities/detail.entity';
 
 @Injectable()
 export class InvoiceService {
-  invoices: InvoiceDto[] = invoiceDb;
+  constructor(private dataSource: DataSource) {}
+  invoices: InvoiceEntity[];
 
-  getInvoices(): InvoiceDto[] {
-    return this.invoices;
-  }
+  async getInvoices(): Promise<InvoiceEntity[]> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-  getInvoiceById(id: string): InvoiceDto | string {
-    const invoiceFound: InvoiceDto | undefined = this.invoices.find(
-      (invoice) => invoice.id === id,
-    );
-    return invoiceFound ? invoiceFound : 'Not found';
-  }
-
-  newInvoice(invoice: InvoiceDto): InvoiceDto {
-    const newInvoice = new InvoiceDto(invoice.date, invoice.detail);
-    this.invoices.push(newInvoice);
-    return newInvoice;
-  }
-
-  updateInvoice(id: string, invoiceNew: InvoiceDto): InvoiceDto | string {
-    const invoice: InvoiceDto | undefined = this.invoices.find(
-      (invoice) => invoice.id === id,
-    );
-    if (invoice) {
-      invoice.date = invoiceNew.date;
-      invoice.detail = invoiceNew.detail;
+    try {
+      const invoices = await queryRunner.manager.find(InvoiceEntity);
+      return invoices;
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw new HttpException(err.message, HttpStatus.NO_CONTENT);
     }
-
-    return invoice ? invoice : 'Not found';
   }
 
-  updateInvoiceDate(id: string, newDate: string): InvoiceDto | string {
-    if (typeof newDate !== 'string') return 'Invalid date';
-    const invoice: InvoiceDto | undefined = this.invoices.find(
-      (invoice) => invoice.id === id,
-    );
-    if (invoice) {
-      invoice.date = newDate;
+  async getInvoiceById(id: number): Promise<InvoiceEntity> {
+    const detalles: DetailEntity[] = [];
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const invoice = await queryRunner.manager.findOneByOrFail(InvoiceEntity, {
+        id: id,
+      });
+      const detailsByInvoice = await queryRunner.manager.query(
+        `SELECT x.* FROM test.tbl_detail x WHERE id_invoice = ${id}`,
+      );
+
+      const customerByInvoice = await queryRunner.manager.query(
+        `SELECT x.* FROM test.tbl_customer x WHERE id = ${invoice.idCustomer}`,
+      );
+
+      detailsByInvoice.forEach((detail: DetailEntity) => {
+        const newDetail = new DetailEntity(detail);
+        detalles.push(newDetail);
+      });
+
+      invoice.details = detalles;
+      invoice.customer = customerByInvoice;
+      return invoice;
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      console.log(err.message);
+      throw new HttpException(err.message, HttpStatus.NOT_FOUND);
     }
-
-    return invoice ? invoice : 'Not found';
   }
 
-  deleteInvoiceById(id: string): boolean {
-    const valor = this.invoices.find((invoice, i) => {
-      if (invoice?.id === id) {
-        this.invoices.splice(i, 1);
-        return invoice;
+  async newInvoice(invoice: InvoiceEntity): Promise<InvoiceEntity> {
+    const newInvoice = new InvoiceEntity(invoice.details, invoice.customer);
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const newFactura = await queryRunner.manager.save(newInvoice);
+      await queryRunner.commitTransaction();
+      return Promise.resolve(newFactura);
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw new HttpException(err.message, HttpStatus.CONFLICT);
+    }
+  }
+
+  async updateInvoice(
+    id: number,
+    invoiceNew: InvoiceEntity,
+  ): Promise<InvoiceEntity> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const invoice = await queryRunner.manager.findOneByOrFail(InvoiceEntity, {
+        id: invoiceNew.id,
+      });
+      if (invoiceNew.date && invoiceNew.idCustomer) {
+        await queryRunner.commitTransaction();
+        if (invoiceNew.date) invoice.date = invoiceNew.date;
+        if (invoiceNew.idCustomer) invoice.idCustomer = invoiceNew.idCustomer;
       }
-    });
-    return valor ? true : false;
+      return invoice;
+    } catch (err) {
+      // since we have errors lets rollback the changes we made
+      await queryRunner.rollbackTransaction();
+      throw new HttpException(err.message, HttpStatus.CONFLICT);
+    }
+  }
+
+  async patchInvoice(
+    id: number,
+    invoiceNew: InvoiceEntity,
+  ): Promise<InvoiceEntity> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const invoice = await queryRunner.manager.findOneByOrFail(InvoiceEntity, {
+        id: invoiceNew.id,
+      });
+      await queryRunner.commitTransaction();
+      if (invoiceNew.date) invoice.date = invoiceNew.date;
+      if (invoiceNew.idCustomer) invoice.idCustomer = invoiceNew.idCustomer;
+      return invoice;
+    } catch (err) {
+      // since we have errors lets rollback the changes we made
+      await queryRunner.rollbackTransaction();
+      throw new HttpException(err.message, HttpStatus.CONFLICT);
+    }
+  }
+
+  async deleteInvoiceById(id: number): Promise<boolean> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      await queryRunner.manager.query(
+        `DELETE x.* FROM test.tbl_detail x WHERE id_invoice = ${id}`,
+      );
+      await queryRunner.manager.query(
+        `DELETE x.* FROM test.tbl_invoice x WHERE id = ${id}`,
+      );
+      await queryRunner.commitTransaction();
+      return true;
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw new HttpException(err.message, HttpStatus.CONFLICT);
+    }
   }
 }

@@ -1,8 +1,8 @@
-import { InvoiceDto } from 'src/modules/invoice/models/invoice.dto';
+import { InvoiceEntity } from 'src/modules/invoice/entities/invoice.entity';
 
 export interface Customer {
-  id: string;
+  id: number;
   name: string;
   email?: string;
-  invoices?: InvoiceDto[];
+  invoices?: InvoiceEntity[];
 }

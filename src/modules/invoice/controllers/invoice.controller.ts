@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { HttpExceptionFilter } from 'src/filters/dto.filter';
 import { AuthGuard } from 'src/guard/token.guard';
-import { InvoiceDto } from '../models/invoice.dto';
+import { InvoiceEntity } from '../entities/invoice.entity';
 import { InvoiceService } from '../services/invoice.service';
 
 @Controller('invoice')
@@ -21,19 +21,19 @@ export class InvoiceController {
   constructor(private readonly invoiceService: InvoiceService) {}
 
   @Get()
-  getInvoices(): InvoiceDto[] {
+  getInvoices(): Promise<InvoiceEntity[]> {
     return this.invoiceService.getInvoices();
   }
 
   @Post()
   @UseGuards(AuthGuard)
   @UseFilters(new HttpExceptionFilter())
-  newInvoice(@Body() body: InvoiceDto): InvoiceDto {
+  newInvoice(@Body() body: InvoiceEntity): Promise<InvoiceEntity> {
     return this.invoiceService.newInvoice(body);
   }
 
   @Get(':id')
-  getInvoiceById(@Param('id') id: string): InvoiceDto | string {
+  getInvoiceById(@Param('id') id: number): Promise<InvoiceEntity> {
     return this.invoiceService.getInvoiceById(id);
   }
 
@@ -41,25 +41,25 @@ export class InvoiceController {
   @UseGuards(AuthGuard)
   @UseFilters(new HttpExceptionFilter())
   updateInvoice(
-    @Param('id') id: string,
-    @Body() invoiceNew: InvoiceDto,
-  ): InvoiceDto | string {
-    return this.invoiceService.updateInvoice(id, invoiceNew);
+    @Param('id') id: number,
+    @Body() body: InvoiceEntity,
+  ): Promise<InvoiceEntity> {
+    return this.invoiceService.updateInvoice(id, body);
   }
 
   @Patch(':id')
   @UseGuards(AuthGuard)
   @UseFilters(new HttpExceptionFilter())
-  updateInvoiceDate(
-    @Param('id') id: string,
-    @Query('newDate') newDate: string,
-  ): InvoiceDto | string {
-    return this.invoiceService.updateInvoiceDate(id, newDate);
+  patchInvoiceDate(
+    @Param('id') id: number,
+    @Body() body: InvoiceEntity,
+  ): Promise<InvoiceEntity> {
+    return this.invoiceService.patchInvoice(id, body);
   }
 
   @Delete(':id')
   @UseGuards(AuthGuard)
-  deleteInvoiceById(@Param('id') id: string): boolean {
+  deleteInvoiceById(@Param('id') id: number): Promise<boolean> {
     return this.invoiceService.deleteInvoiceById(id);
   }
 }

@@ -1,7 +1,7 @@
-import { DetailDto } from '../models/detail.dto';
+import { DetailEntity } from '../entities/detail.entity';
 
 export interface Invoice {
-  id: string;
-  date: string;
-  detail: DetailDto[];
+  id?: number;
+  date?: Date;
+  details: DetailEntity[];
 }
